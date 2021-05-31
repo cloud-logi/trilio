@@ -1,0 +1,198 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wordpress
+---
+apiVersion: v1
+data:
+  dbname: d29yZHByZXNz
+  dbpassword: cGFzc3dvcmQxMjM0
+  dbrootpassword: cm9vdDEyMzQ=
+  dbuser: dXNlcl93b3JkcHJlc3M=
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: mariadb-secret
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: database
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: database
+spec:
+  selector:
+    app: wordpress
+    type: database
+  ports:
+  - port: 3306
+    targetPort: db-port
+  type: ClusterIP 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+  labels:
+    app: wordpress
+    type: database
+    name: dbpvc1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: thin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+      type: database
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        type: database
+    spec:
+      volumes:
+        - name: db-vol
+          persistentVolumeClaim:
+            claimName: db-pvc
+      containers:
+        - name: wordpress
+          image: mariadb
+          ports:
+            - containerPort: 3306
+              name: db-port
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: db-vol
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbuser
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbname
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbpassword
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbrootpassword
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-service
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: frontend
+spec:
+  selector:
+    app: wordpress
+    type: frontend
+  ports:
+  - name: http-sv-port 
+    port: 80
+    targetPort: http-port
+  - name: https-sv-port
+    port: 443
+    targetPort: https-port
+  type: NodePort 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deployment
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: frontend
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+      type: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        type: frontend
+    spec:
+      containers:
+        - name: wordpress
+          image: wordpress:5.7-php7.4-apache
+          securityContext:
+            sysctls:
+              - name: net.ipv4.ip_unprivileged_port_start
+                value: "0"
+          ports:
+            - containerPort: 80
+              name: http-port
+            - containerPort: 443
+              name: https-port
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: mariadb-service
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbuser
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbpassword
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: dbname
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: wordpress-route
+  namespace: wordpress
+  labels:
+    app: wordpress
+    type: frontend
+spec:
+  host: wordpress.apps.prev.la.logicalis.com
+  to:
+    kind: Service
+    name: wordpress-service
+    weight: 100
+  port:
+    targetPort: http-sv-port
+  wildcardPolicy: None
+            

@@ -1,0 +1,9 @@
+apiVersion: triliovault.trilio.io/v1
+kind: Backup
+metadata:
+  name: wordpress-label-backup
+spec:
+  type: Full
+  backupPlan:
+    name: wordpress-label-backupplan
+    namespace: default

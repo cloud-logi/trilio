@@ -1,0 +1,12 @@
+apiVersion: triliovault.trilio.io/v1
+kind: Restore
+metadata:
+  name: demo-restore
+spec:
+  restoreNamespace: default
+  source:
+    type: Backup
+    backup:
+      name: mysql-label-backup
+      namespace: default
+  skipIfAlreadyExists: true
