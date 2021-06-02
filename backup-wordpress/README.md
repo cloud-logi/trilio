@@ -66,6 +66,10 @@ Verifique si el snapshot y el contenido de la instantánea del volumen muestra l
 oc get volumesnapshot
 oc get volumesnapshotcontent
 ```
+# Instalacion de la app en OpenShift
+Ir a OperatorHub y buscar trilio, luego instalar la version que no es de Marketplace 
+
+
 
 # Se necesita para este caso un servidor NFS.
 Creamos el Target
