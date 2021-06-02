@@ -67,9 +67,12 @@ oc get volumesnapshot
 oc get volumesnapshotcontent
 ```
 # Instalacion de la app en OpenShift
-Ir a OperatorHub y buscar trilio, luego instalar la version que no es de Marketplace 
 
+* Asegurarse que estamos en el proyecto "default"
 
+* Ir a OperatorHub y buscar trilio.
+
+* instalar la version que no es de Marketplace 
 
 # Se necesita para este caso un servidor NFS.
 Creamos el Target
