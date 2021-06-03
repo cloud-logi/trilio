@@ -86,58 +86,65 @@ Creamos el Retention Policy
 policy.triliovault.trilio.io/demo-policy created
 ```
 
-Crear app de Test
+Crear app de Test, en este caso es un Wordpress con Mariadb. Asegurarse que el StorageClass del pvc sea el creado csi-hostpath-sc
 ```
-# oc create -f app-demo-trilio.yaml 
-secret/mysql-pass created
-persistentvolumeclaim/mysql-pv-claim created
-deployment.apps/k8s-demo-app-mysql created
-service/k8s-demo-app-mysql created
-deployment.apps/k8s-demo-app-frontend created
-service/k8s-demo-app-frontend created
+# oc create -f wordpress-mariadb.yaml 
+namespace/wordpress created
+secret/mariadb-secret created
+service/mariadb-service created
+persistentvolumeclaim/db-pvc created
+deployment.apps/mariadb-deployment created
+service/wordpress-service created
+deployment.apps/wordpress-deployment created
+route.route.openshift.io/wordpress-route created
 ```
 
 Crear Backup Plan
 ```
 # oc create -f BackupPlan.yaml 
-backupplan.triliovault.trilio.io/mysql-label-backupplan created
+backupplan.triliovault.trilio.io/wordpress-label-backupplan created
 ```
 
 Crear Backup 
 ```
 # oc create -f backup.yaml 
-backup.triliovault.trilio.io/mysql-label-backup created
+backup.triliovault.trilio.io/wordpress-label-backup created
 ```
 
 Verificar el porcentaje del Backup
-```
-# oc get backups
-NAME                 BACKUPPLAN               BACKUP TYPE   STATUS       DATA SIZE   START TIME             END TIME   PERCENTAGE COMPLETED   BACKUP SCOPE
-mysql-label-backup   mysql-label-backupplan   Full          InProgress   0           2021-05-28T15:28:42Z              20                     App
+```                             
+# oc get backup 
+NAME                     BACKUPPLAN                   BACKUP TYPE   STATUS       DATA SIZE   START TIME             END TIME   PERCENTAGE COMPLETED   BACKUP SCOPE
+wordpress-label-backup   wordpress-label-backupplan   Full          InProgress   0           2021-06-02T21:03:03Z
 ```
 
 Backup completo cuando llega a 100%
 ```
 # oc get backups
-NAME                 BACKUPPLAN               BACKUP TYPE   STATUS      DATA SIZE   START TIME             END TIME               PERCENTAGE COMPLETED   BACKUP SCOPE
-mysql-label-backup   mysql-label-backupplan   Full          Available   261033984   2021-05-28T15:28:42Z   2021-05-28T15:31:35Z   100                    App
-
+NAME                     BACKUPPLAN                   BACKUP TYPE   STATUS      DATA SIZE   START TIME             END TIME               PERCENTAGE COMPLETED   BACKUP SCOPE
+wordpress-label-backup   wordpress-label-backupplan   Full          Available   173805568   2021-06-02T21:03:03Z   2021-06-02T21:05:58Z   100                    App
 ```
 
 Con watch monitoreamos el proceso
 ```
-# watch 'oc get backups.triliovault.trilio.io '
+# watch 'oc get backups '
 ```
 
 Para restorear primero borramos la app.
 ```
-# oc delete -f app-demo-trilio.yaml 
-secret "mysql-pass" deleted
-persistentvolumeclaim "mysql-pv-claim" deleted
-deployment.apps "k8s-demo-app-mysql" deleted
-service "k8s-demo-app-mysql" deleted
-deployment.apps "k8s-demo-app-frontend" deleted
-service "k8s-demo-app-frontend" deleted
+# oc delete -f wordpress-mariadb.yaml 
+namespace "wordpress" deleted
+secret "mariadb-secret" deleted
+service "mariadb-service" deleted
+persistentvolumeclaim "db-pvc" deleted
+deployment.apps "mariadb-deployment" deleted
+service "wordpress-service" deleted
+deployment.apps "wordpress-deployment" deleted
+route.route.openshift.io "wordpress-route" deleted
+```
+Creamos el proyecto en el que estaba creada la app
+```
+# oc new-project wordpress
 ```
 
 Hacemos el restore de la app
